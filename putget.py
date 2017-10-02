@@ -1,52 +1,30 @@
 import boto
 import boto.s3.connection
 from boto.s3.key import Key
-import numpy as np
+# import numpy as np
 import os
 import random
 import string
+import argparse
+
 # np.random.normal()
 
 """
 Put and Get unit tests
 """
 
-#access_key = ''
-#secret_key = ''
-#host_base = 'storage.datacentred.io'
-#host_port = 443
-#secure = True
-
-#access_key = ''
-#secret_key = ''
-#host_base = 'cs3.cern.ch'
-#host_port = 443
-#secure = True
-
-#access_key = ''
-#secret_key = ''
-#host_base = 'ceph-s3.mwt2.org'
-#host_port = 80
-#secure = False
-
-#access_key = ''
-#secret_key = ''
-#host_base = 'cephgw.usatlas.bnl.gov'
-#host_port = 8443
-#secure = True
-
-access_key = ''
-secret_key = ''
-host_base = 's3.echo.stfc.ac.uk'
-#host_base = 'ceph-gw1.gridpp.rl.ac.uk'
-host_port = 443
-secure = True
+parser = argparse.ArgumentParser()
+parser.add_argument("host_base")
+parser.add_argument("-p", "--profile", help="boto credential profile")
+parser.add_argument("-k", "--key", dest="accesskey", help="access key")
+parser.add_argument("-s", "--secret", dest="secretkey", help="access secret")
+args = parser.parse_args()
 
 conn = boto.connect_s3(
-        aws_access_key_id = access_key,
-        aws_secret_access_key = secret_key,
-        host = host_base,
-        is_secure = secure,
+        aws_access_key_id = args.accesskey,
+        aws_secret_access_key = args.secretkey,
+        host = args.host_base,
+        is_secure = True,
         calling_format = boto.s3.connection.OrdinaryCallingFormat(),
         )
 
