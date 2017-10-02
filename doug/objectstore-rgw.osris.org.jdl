@@ -1,0 +1,86 @@
+#####################################
+## submit description file for a parallel program
+## showing the $(Node) macro
+######################################
+universe = vanilla
+arguments = $(Cluster) $(Process) 
+log    = /users/dbenjamin/condor/objectstore/logs/objectstore_$(Cluster).$(Process).log
+Output = /users/dbenjamin/condor/objectstore/logs/objectstore_$(Cluster).$(Process).sysout
+Error  = /users/dbenjamin/condor/objectstore/logs/objectstore_$(Cluster).$(Process).syserr
+#input = /users/dbenjamin/condor/objectstore/logs/infile.$(Node)
+
+rank = (-TARGET.SlotID) 
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_output_files = logs/
+
+#transfer_input_files=/users/dbenjamin/atlas/objectstore/netstat.py,/users/dbenjamin/atlas/objectstore/multiprocessing_cephs3_stress_test_v2.py,/users/dbenjamin/atlas/objectstore/multiprocessing_cephs3_stress_test_tokens.py,/users/dbenjamin/atlas/objectstore/data/HITS.06282451._000321.pool.root.1.6282451-2573318909-3868702156-955-10
+
+transfer_input_files=/users/dbenjamin/atlas/objectstore/netstat.py,/users/dbenjamin/atlas/objectstore/multiprocessing_cephs3_stress_test_v3.py,/users/dbenjamin/atlas/objectstore/multiprocessing_cephs3_stress_test_tokens.py,/users/dbenjamin/atlas/objectstore/data/HITS.06282451._000321.pool.root.1.6282451-2573318909-3868702156-955-10,/users/dbenjamin/atlas/objectstore/osiris_CA_bundle.pem
+
+# Now add more threads against the single machines 
+executable = run-single-node.sh
+arguments = $(Cluster) $(Process) OSiRIS 443 rgw.osris.org 600 20 HITS.06282451._000321.pool.root.1.6282451-2573318909-3868702156-955-10
+
+# atlas50
+Requirements = ( machine == "atlas50.hep.anl.gov")
+queue 1
+
+# atlas51
+Requirements = ( machine == "atlas51.hep.anl.gov")
+queue 1
+
+# atlas52
+Requirements = ( machine == "atlas52.hep.anl.gov")
+queue 1
+
+# atlas53
+Requirements = ( machine == "atlas53.hep.anl.gov")
+queue 1
+
+# atlas54
+Requirements = ( machine == "atlas54.hep.anl.gov")
+queue 1
+
+# atlas55
+Requirements = ( machine == "atlas55.hep.anl.gov")
+queue 1
+
+# atlas56
+Requirements = ( machine == "atlas56.hep.anl.gov")
+queue 1
+
+# atlas57
+Requirements = ( machine == "atlas57.hep.anl.gov")
+queue 1
+
+# atlas58
+Requirements = ( machine == "atlas58.hep.anl.gov")
+queue 1
+
+# atlas59
+Requirements = ( machine == "atlas59.hep.anl.gov")
+queue 1
+
+# atlas60
+Requirements = ( machine == "atlas60.hep.anl.gov")
+queue 1
+
+# atlas61
+Requirements = ( machine == "atlas61.hep.anl.gov")
+queue 1
+
+# atlas63
+Requirements = ( machine == "atlas63.hep.anl.gov")
+queue 1
+
+# atlas64
+Requirements = ( machine == "atlas64.hep.anl.gov")
+queue 1
+
+# atlas65
+Requirements = ( machine == "atlas65.hep.anl.gov")
+queue 1
+
+
