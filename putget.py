@@ -14,16 +14,16 @@ Put and Get unit tests
 """
 
 parser = argparse.ArgumentParser()
-parser.add_argument("host_base")
 parser.add_argument("-p", "--profile", help="boto credential profile")
 parser.add_argument("-k", "--key", dest="accesskey", help="access key")
 parser.add_argument("-s", "--secret", dest="secretkey", help="access secret")
+parser.add_argument("-j", "--hostname", dest="hostname", help="hostname of endpoint")
 args = parser.parse_args()
 
 conn = boto.connect_s3(
         aws_access_key_id = args.accesskey,
         aws_secret_access_key = args.secretkey,
-        host = args.host_base,
+        host = args.hostname,
         is_secure = True,
         calling_format = boto.s3.connection.OrdinaryCallingFormat(),
         )

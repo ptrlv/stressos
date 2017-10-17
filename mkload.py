@@ -33,7 +33,7 @@ parser.add_argument("source_file")
 parser.add_argument("-k", "--key", dest="access_key", help="access key")
 parser.add_argument("-s", "--secret", dest="secret_key", help="access secret")
 parser.add_argument("-n", "--nthreads", dest="nthreads", type=int, help="number of threads")
-parser.add_argument("-d", "--hostbase", dest="hostbase", help="hostname of endpoint")
+parser.add_argument("-d", "--hostname", dest="hostname", help="hostname of endpoint")
 parser.add_argument("-t", "--duration", type=int, dest="duration", help="duration of test")
 parser.add_argument("-b", "--bucket", dest="bucket_name", help="name of target bucket")
 parser.add_argument("-c", "--secure", dest="is_secure", action="store_true", help="use https")
@@ -85,12 +85,12 @@ print('is_secure: %r' % (args.is_secure))
 submit_host = socket.gethostname()
 submit_host = submit_host.split(".")[0]
 print("Submit host: ", submit_host)
-print("Remote host: ", args.hostbase)
+print("Remote host: ", args.hostname)
 
 time_start = time.time()
 time_end = time.time() + args.duration
 
-LOG_FILENAME = '/tmp/multiprocessing_cephs3_test_%s_%s.log' %(submit_host,args.hostbase)
+LOG_FILENAME = '/tmp/multiprocessing_cephs3_test_%s_%s.log' %(submit_host,args.hostname)
 
 
 #function to connect and write to Ceph OS
@@ -214,7 +214,7 @@ if __name__ == '__main__':
     jobs = []
     try:
         for i in range(num_processes):
-            p = multiprocessing.Process(target=worker, args=(i,args.hostbase,submit_host,args.source_file,args.nthreads))
+            p = multiprocessing.Process(target=worker, args=(i,args.hostname,submit_host,args.source_file,args.nthreads))
             jobs.append(p)
             p.start()
 
