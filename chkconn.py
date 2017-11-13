@@ -16,7 +16,6 @@ parser.add_argument("-s", "--secret", dest="secret_key", help="access secret")
 parser.add_argument("-d", "--hostname", dest="hostname", help="hostname of endpoint")
 parser.add_argument("-c", "--secure", dest="is_secure", action="store_true", help="use https")
 parser.add_argument("-p", "--port", dest="port", type=int, default=443, help="port number")
-parser.add_argument("--debug", action="store_true", help="debug messages")
 
 args = parser.parse_args()
 
