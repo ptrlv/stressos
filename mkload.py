@@ -1,8 +1,6 @@
 from __future__ import print_function
 import argparse
-import glob
-import os
-import random
+#import random
 import socket
 import time
 import datetime
@@ -11,7 +9,6 @@ import logging
 import logging.handlers
 import sys
 import hashlib
-import shutil
 
 import boto
 import boto.s3.connection
@@ -35,7 +32,7 @@ parser.add_argument("-s", "--secret", dest="secret_key", help="access secret")
 parser.add_argument("-n", "--nthreads", dest="nthreads", type=int, help="number of threads")
 parser.add_argument("-d", "--hostname", dest="hostname", help="hostname of endpoint")
 parser.add_argument("-t", "--duration", type=int, dest="duration", help="duration of test")
-parser.add_argument("-b", "--bucket", dest="bucket_name", help="name of target bucket")
+parser.add_argument("-b", "--bucket", help="name of target bucket")
 parser.add_argument("-c", "--secure", dest="is_secure", action="store_true", help="use https")
 parser.add_argument("-p", "--port", dest="port", type=int, default=443, help="port number")
 parser.add_argument("--debug", action="store_true", help="debug messages")
@@ -74,52 +71,32 @@ class ThreadPool:
         """Wait for completion of all the tasks in the queue"""
         self.tasks.join()
 
-def eprint(*args, **kwargs):
-    timestamp=datetime.datetime.today().strftime('[%Y-%m-%d %H:%M:%S] ')
-    print(timestamp,*args, file=sys.stderr, **kwargs)
-
-print('port: %d' % (args.port))
-print('bucket_name: %s' % (args.bucket_name))
-print('is_secure: %r' % (args.is_secure))
-
-submit_host = socket.gethostname()
-submit_host = submit_host.split(".")[0]
-print("Submit host: ", submit_host)
-print("Remote host: ", args.hostname)
-
-time_start = time.time()
-time_end = time.time() + args.duration
-
-LOG_FILENAME = '/tmp/multiprocessing_cephs3_test_%s_%s.log' %(submit_host,args.hostname)
-
-
 #function to connect and write to Ceph OS
-def write_thread(conn, dest_host, src_file, keyname):
-    global submit_host
+def write_thread(conn, bucket, dest_host, src_file, keyname):
     global time_end    
     global logger
 
-    ret_code=True
+    ret_code = True
 
     try:
-        bucket = conn.get_bucket(args.bucket_name)
         try:
             key = Key(bucket)
             key.key = '%s_%s' %(hashlib.md5(keyname.encode('utf-8')).hexdigest()[0:15],keyname)
-            key.md5 = "ea7a25c839be547c6bd964e015671453"
-            key.set_metadata("md5", "ea7a25c839be547c6bd964e015671453")
-            # time the write
-            start=datetime.datetime.now()
+#rucio?            key.md5 = "ea7a25c839be547c6bd964e015671453"
+#rucio?            key.set_metadata("md5", "ea7a25c839be547c6bd964e015671453")
+
+            start = datetime.datetime.now()
             key.set_contents_from_filename(src_file)
-            stop=datetime.datetime.now()
-            #
+            stop = datetime.datetime.now()
+
             elapsed_time_string=stop-start
             elapsed_time=float(elapsed_time_string.seconds)+float(elapsed_time_string.microseconds)/1000000.
             timestamp=start.strftime('[%Y-%m-%d %H:%M:%S.%f] ')
-            logger.info("Host - %s write to bucket %s elapsed time - %.3f sec at %s" %(dest_host,args.bucket_name,elapsed_time,timestamp))
+            logger.info("Host - %s write to bucket %s elapsed time - %.3f sec at %s" %(dest_host,bucket,elapsed_time,timestamp))
+            stamp = datetime.datetime.timestamp(start)
+            msg = '{},{},{},{}'.format(stamp, dest_host, key.size, elapsed_time)
+            print(msg)
         except Exception as e:
-#            timestamp=start.strftime('[%Y-%m-%d %H:%M:%S.%f] ')
-#            logger.info("Host - %s start write to bucket %s at %s" %(dest_host,args.bucket_name,timestamp))
             logger.info("Thread Exception (write object) %s" %(str(e)))
             ret_code = False
     except Exception as e:
@@ -128,7 +105,22 @@ def write_thread(conn, dest_host, src_file, keyname):
     return ret_code
 
 
-def test_loop_func(dest_host, src_file, keyname):
+def get_connection(access_key, secret_key, host, port, is_secure):
+    
+    #create the connection to the S3 server
+    conn = boto.connect_s3(
+        aws_access_key_id = access_key,
+        aws_secret_access_key = secret_key,
+        host = host,
+        port = port,
+        is_secure = is_secure,
+        calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+        )
+    logger.info("Make connection to remote host %s" %(host))
+    
+    return conn
+
+def stress_loop_func(conn, bucket, dest_host, src_file, keyname):
     global logger
     global time_end
     global site
@@ -139,27 +131,16 @@ def test_loop_func(dest_host, src_file, keyname):
     iloop=0
     while (time.time() < time_end):
         try:
-            #create the connection to the S3 server
-            conn = boto.connect_s3(
-                aws_access_key_id = args.access_key,
-                aws_secret_access_key = args.secret_key,
-                host = new_host,
-                port = args.port,
-                is_secure = args.is_secure,           # uncommmnt if you are not using ssl
-                calling_format = boto.s3.connection.OrdinaryCallingFormat(),
-                )
-            logger.info("Make connection to remote host %s" %(new_host))
-            
             newkeyname="%s_%s" %(keyname,str(iloop))
             logger.debug("Writing file: %s to Object %s" %(src_file,newkeyname))
             # write to Object store
-            ret_code = write_thread(conn, new_host, src_file, newkeyname)
+            ret_code = write_thread(conn, bucket, new_host, src_file, newkeyname)
             if ret_code :
                 iloop += 1
             else :
                 logger.debug("Writing to OS failed end thread")
                 #break
-            time.sleep(15)
+            time.sleep(5)
             # close the connection
             conn.close()
         except Exception as e:
@@ -167,7 +148,7 @@ def test_loop_func(dest_host, src_file, keyname):
     logger.info("Host - %s number of writes to OS %d" %(new_host,(iloop+1)))
 
 
-def worker(num, hostname, submit_host, src_file, num_threads):
+def worker(i, hostname, submit_host, src_file, nthreads):
     global logger
     name = multiprocessing.current_process().name
     logger.info('Starting: %s', multiprocessing.current_process().name)
@@ -176,12 +157,20 @@ def worker(num, hostname, submit_host, src_file, num_threads):
     total_threads=0
 
     # Init Thread pool with desired number of threads
-    logger.info('Initialize ThreadPool - num threads : %d' %(num_threads))
-    threadpool = ThreadPool(num_threads)
+    logger.info('Initialize ThreadPool - num threads : %d' %(nthreads))
+    threadpool = ThreadPool(nthreads)
 
-    for i in range(num_threads):
+    conn = get_connection(args.access_key,
+                          args.secret_key,
+                          args.hostname,
+                          args.port,
+                          args.is_secure)
+
+    bucket = conn.get_bucket(args.bucket)
+
+    for i in range(nthreads):
         logger.debug("Add thread to ThreadPool thread # %d" %(thread_id))
-        threadpool.add_task(test_loop_func, hostname, src_file, "write_test_%s_%d_%d" % (submit_host,num,thread_id))
+        threadpool.add_task(stress_loop_func, conn, bucket, hostname, src_file, "write_test_%s_%d_%d" % (submit_host,i,thread_id))
         thread_id += 1
     threadpool.wait_completion()
     sys.stdout.flush()
@@ -208,6 +197,14 @@ if __name__ == '__main__':
     num_processes = multiprocessing.cpu_count() * 4
     num_processes = 1
     
+    submit_host = socket.gethostname()
+    submit_host = submit_host.split(".")[0]
+
+    time_start = time.time()
+    time_end = time.time() + args.duration
+
+    LOG_FILENAME = '/tmp/multiprocessing_cephs3_test_%s_%s.log' %(submit_host,args.hostname)
+
     logger.info('submit host - %s' %(submit_host))
     logger.info('number of subprocesses - %d' %(num_processes))
 
@@ -218,8 +215,16 @@ if __name__ == '__main__':
             jobs.append(p)
             p.start()
 
-        # perhaps wait for the processes to finish
         for p in jobs:
             p.join()
+
     except Exception as e:
         logger.info("multiprocessing Exception %s" %str(e))
+
+"""
+siege.log
+      Date & Time,  Trans,  Elap Time,  Data Trans,  Resp Time,  Trans Rate,  Throughput,  Concurrent,    OKAY,   Failed
+2017-10-17 12:48:45,    615,       5.00,          10,       0.20,      123.00,        2.00,       24.18,     615,       0
+2017-10-17 13:43:33,   3508,       4.18,         194,       0.03,      839.23,       46.41,       24.57,    3508,       0
+2017-10-17 13:57:56,  40359,     676.03,        2247,       0.01,       59.70,        3.32,        0.67,   40359,       0
+"""
