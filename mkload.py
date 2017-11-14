@@ -25,20 +25,6 @@ benjamin@phy.duke.edu
 p.love@lancaster.ac.uk
 """
 
-parser = argparse.ArgumentParser()
-parser.add_argument("source_file")
-parser.add_argument("-k", "--key", dest="access_key", help="access key")
-parser.add_argument("-s", "--secret", dest="secret_key", help="access secret")
-parser.add_argument("-n", "--nthreads", dest="nthreads", type=int, help="number of threads")
-parser.add_argument("-d", "--hostname", dest="hostname", help="hostname of endpoint")
-parser.add_argument("-t", "--duration", type=int, dest="duration", help="duration of test")
-parser.add_argument("-b", "--bucket", help="name of target bucket")
-parser.add_argument("-c", "--secure", dest="is_secure", action="store_true", help="use https")
-parser.add_argument("-p", "--port", dest="port", type=int, default=443, help="port number")
-parser.add_argument("--debug", action="store_true", help="debug messages")
-
-args = parser.parse_args()
-
 class Worker(Thread):
     global logger
     """Thread executing tasks from a given tasks queue"""
@@ -178,6 +164,23 @@ def worker(i, hostname, submit_host, src_file, nthreads):
 
 if __name__ == '__main__':
         
+    parser = argparse.ArgumentParser()
+    parser.add_argument("source_file")
+    parser.add_argument("-k", "--key", dest="access_key", help="access key")
+    parser.add_argument("-s", "--secret", dest="secret_key", help="access secret")
+    parser.add_argument("-n", "--nthreads", dest="nthreads", type=int, help="number of threads")
+    parser.add_argument("-d", "--hostname", dest="hostname", help="hostname of endpoint")
+    parser.add_argument("-t", "--duration", type=int, dest="duration", help="duration of test")
+    parser.add_argument("-b", "--bucket", help="name of target bucket")
+    parser.add_argument("-c", "--secure", dest="is_secure", action="store_true", help="use https")
+    parser.add_argument("-p", "--port", dest="port", type=int, default=443, help="port number")
+    parser.add_argument("--debug", action="store_true", help="debug messages")
+    args = parser.parse_args()
+
+    submit_host = socket.gethostname()
+    submit_host = submit_host.split(".")[0]
+    LOG_FILENAME = '/tmp/multiprocessing_cephs3_test_%s_%s.log' %(submit_host,args.hostname)
+
     logger = multiprocessing.get_logger()
     if args.debug:
         logger.setLevel(logging.DEBUG)
@@ -197,13 +200,9 @@ if __name__ == '__main__':
     num_processes = multiprocessing.cpu_count() * 4
     num_processes = 1
     
-    submit_host = socket.gethostname()
-    submit_host = submit_host.split(".")[0]
-
     time_start = time.time()
     time_end = time.time() + args.duration
 
-    LOG_FILENAME = '/tmp/multiprocessing_cephs3_test_%s_%s.log' %(submit_host,args.hostname)
 
     logger.info('submit host - %s' %(submit_host))
     logger.info('number of subprocesses - %d' %(num_processes))
