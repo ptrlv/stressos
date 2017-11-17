@@ -29,9 +29,10 @@ aws_secret_access_key = ABCDEFGHIJKLMNOPQRSTUVWXYZ
 [lancs]
 aws_access_key_id = MNOPQRSTUVWXYZ
 aws_secret_access_key = ABCDEFGHIJKLMNOPQRSTUVWXYZ
+is_secure = True
 ```
 
-Different profiles may be select using env var:
+Different profiles may be select using env var or cmdline option:
 ``` 
 $ export AWS_PROFILE=lancs
 ```
@@ -42,10 +43,10 @@ After activating your virtual environment and credentials try the following test
 
 ```
 # this opens a connection and lists all buckets
-$ python chkconn.py --secure -d s3.example.com -p 443
+$ python chkconn.py -d s3.example.com -p 443 --profile lancs
 
 # this will list bucket contents or create the bucket if it doesn't exist
-$ python chkbucket.py --secure -d s3.example.com -p 443 foobar-bucket
+$ python chkbucket.py -d s3.example.com -p 443 --profile lancs foobar-bucket
 
 ```
 
