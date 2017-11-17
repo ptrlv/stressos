@@ -11,7 +11,7 @@ import sys
 import hashlib
 
 import boto
-import boto.s3.connection
+from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 
 from queue import Queue
@@ -94,13 +94,14 @@ def write_thread(conn, bucket, dest_host, src_file, keyname):
 def get_connection(access_key, secret_key, host, port, is_secure):
     
     #create the connection to the S3 server
-    conn = boto.connect_s3(
+    conn = boto.S3Connection(
         aws_access_key_id = access_key,
         aws_secret_access_key = secret_key,
         host = host,
         port = port,
-        is_secure = is_secure,
+#        is_secure = is_secure,
         calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+        profile_name = args.profile,
         )
     logger.info("Make connection to remote host %s" %(host))
     
@@ -172,8 +173,9 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--hostname", dest="hostname", help="hostname of endpoint")
     parser.add_argument("-t", "--duration", type=int, dest="duration", help="duration of test")
     parser.add_argument("-b", "--bucket", help="name of target bucket")
-    parser.add_argument("-c", "--secure", dest="is_secure", action="store_true", help="use https")
+    parser.add_argument("--secure", dest="is_secure", action="store_true", help="use https")
     parser.add_argument("-p", "--port", dest="port", type=int, default=443, help="port number")
+    parser.add_argument("--profile", dest="profile", default='default', help="profile name")
     parser.add_argument("--debug", action="store_true", help="debug messages")
     args = parser.parse_args()
 
