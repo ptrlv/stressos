@@ -18,6 +18,8 @@ parser.add_argument("-s", "--secret", dest="secret_key", help="access secret")
 parser.add_argument("-d", "--hostname", dest="hostname", help="hostname of endpoint")
 parser.add_argument("-c", "--secure", dest="is_secure", action="store_true", help="use https")
 parser.add_argument("-p", "--port", dest="port", type=int, default=443, help="port number")
+parser.add_argument("--profile", dest="profile", default='default', help="profile name")
+
 
 args = parser.parse_args()
 
@@ -30,6 +32,7 @@ def get_connection(access_key, secret_key, host, port, is_secure):
         port = port,
         is_secure = is_secure,
         calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+        profile_name = args.profile,
         )
     
     return conn
