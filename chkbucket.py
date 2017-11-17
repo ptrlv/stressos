@@ -1,10 +1,10 @@
 from __future__ import print_function
 import argparse
-import boto
-import boto.s3.connection
 import random
 import string
 
+import boto
+from boto.s3.connection import S3Connection
 
 """
 Check content of bucket, create if doesn't exist
@@ -23,7 +23,7 @@ parser.add_argument('bucketname', help='name of bucket to list or create')
 args = parser.parse_args()
 
 def get_connection(access_key, secret_key, host, port, is_secure):
-    conn = boto.connect_s3(
+    conn = S3Connection(
         aws_access_key_id = access_key,
         aws_secret_access_key = secret_key,
         host = host,
@@ -45,15 +45,14 @@ def main():
     if args.bucketname:
         bname = args.bucketname
     else:
-        bname = 'plove-bkt-' + ''.join(random.choice(string.ascii_lowercase) for i in range(6))
+        bname = 'stressos-' + ''.join(random.choice(string.ascii_lowercase) for i in range(6))
     bucket = conn.lookup(bname)
-    print(bucket)
     if bucket:
         for key in bucket.list():
             print(key.size, key.last_modified, key.name)
     else:
-        print(conn.create_bucket(bname))
-        
+        bucket = conn.create_bucket(bname)
+        print("Created: {}".format(bucket))
 
 
 if __name__ == '__main__':
