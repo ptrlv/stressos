@@ -94,7 +94,7 @@ def write_thread(conn, bucket, dest_host, src_file, keyname):
 def get_connection(access_key, secret_key, host, port, is_secure):
     
     #create the connection to the S3 server
-    conn = boto.S3Connection(
+    conn = S3Connection(
         aws_access_key_id = access_key,
         aws_secret_access_key = secret_key,
         host = host,
