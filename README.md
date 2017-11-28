@@ -11,8 +11,8 @@ $ . osenv/bin/activate
 
 
 On Linux:
-$ <install latest python3.6>
-$ python3.6 -m venv osenv
+$ <install python3>
+$ python3 -m venv osenv
 $ . osenv/bin/activate
 (osenv) $ pip install -r requirements.txt
 ```
