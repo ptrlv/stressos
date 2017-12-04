@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-k", "--key", dest="access_key", help="access key")
 parser.add_argument("-s", "--secret", dest="secret_key", help="access secret")
 parser.add_argument("-d", "--hostname", dest="hostname", help="hostname of endpoint")
-parser.add_argument("-c", "--secure", dest="is_secure", default=True, action="store_true", help="use https")
+parser.add_argument("-c", "--insecure", dest="is_secure", default=True, action="store_false", help="use http")
 parser.add_argument("-p", "--port", dest="port", type=int, default=443, help="port number")
 parser.add_argument("--profile", dest="profile", default='default', help="profile name")
 
