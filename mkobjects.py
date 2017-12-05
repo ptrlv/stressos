@@ -21,6 +21,9 @@ Authors:
 def getargs():
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--bucket', help='name of target bucket')
+    parser.add_argument('-m', '--mean', help='mean size of file in bytes')
+    parser.add_argument('-s', '--stddev', help='stddev of file in bytes')
+    parser.add_argument('-n', '--num', help='number of files')
     parser.add_argument('--seed', dest='seed', help='optional seed for the random number generator')
    
     return parser.parse_args()
@@ -69,30 +72,8 @@ def put_objects(bucket, files, seed):
     return keys
 
 
-def _main():
-    """remove this stub from s3test repo"""
-
-    '''To run the static content load test, make sure you've bootstrapped your
-       test environment and set up your config.yaml file, then run the following:
-          S3TEST_CONF=config.yaml virtualenv/bin/s3tests-generate-objects.py --seed 1234
-
-        This creates a bucket with your S3 credentials (from config.yaml) and
-        fills it with garbage objects as described in the
-        file_generation.groups section of config.yaml.  It writes a list of
-        URLS to those objects to the file listed in file_generation.url_file
-        in config.yaml.
-
-        Once you have objcts in your bucket, run the siege benchmarking program:
-            siege --rc ./siege.conf -r 5
-
-        This tells siege to read the ./siege.conf config file which tells it to
-        use the urls in ./urls.txt and log to ./siege.log. It hits each url in
-        urls.txt 5 times (-r flag).
-
-        Results are printed to the terminal and written in CSV format to
-        ./siege.log
-    '''
-
+def main():
+    args = getargs()
     #SETUP
     random.seed(options.seed if options.seed else None)
     conn = common.s3.main
@@ -109,14 +90,13 @@ def _main():
     else:
         bucket = common.get_new_bucket()
 
-    bucket.set_acl('public-read')
+#    bucket.set_acl('public-read')
     keys = []
     print >> OUTFILE, 'bucket: %s' % bucket.name
     print >> sys.stderr, 'setup complete, generating files'
-    for profile in common.config.file_generation.groups:
-        seed = random.random()
-        files = get_random_files(profile[0], profile[1], profile[2], seed)
-        keys += upload_objects(bucket, files, seed)
+    seed = random.random()
+    files = get_random_files(args.num, args.mean, args.stddev, seed)
+    keys += upload_objects(bucket, files, seed)
 
     print >> sys.stderr, 'finished sending files. generating urls'
     for key in keys:
@@ -125,8 +105,6 @@ def _main():
     print >> sys.stderr, 'done'
 
 
-def main():
-    args = getargs()
 
 if __name__ == '__main__':
     main()
