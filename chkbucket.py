@@ -29,7 +29,7 @@ def get_connection(access_key, secret_key, host, port, is_secure):
         aws_secret_access_key = secret_key,
         host = host,
         port = port,
-#        is_secure = is_secure,
+        is_secure = is_secure,
         calling_format = boto.s3.connection.OrdinaryCallingFormat(),
         profile_name = args.profile,
         )
