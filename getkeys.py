@@ -24,7 +24,7 @@ def getKeys(node):
                                   verify=False,
                                   cert=(sslCert, sslKey),
                                   data=urllib.parse.urlencode(node),
-                                  timeout=120)
+                                  timeout=60)
     if r and r.status_code == 200:
         print(r.text)
 
@@ -45,5 +45,7 @@ node['publicKeyName'] = 'LANCS_ObjectStoreKey.pub'
 #node['publicKeyName'] = 'CERN_ObjectStoreKey.pub'
 #node['privateKeyName'] = 'MWT2_ObjectStoreKey'
 #node['publicKeyName'] = 'MWT2_ObjectStoreKey.pub'
+node['privateKeyName'] = 'AGLT2_ObjectStoreKey'
+node['publicKeyName'] = 'AGLT2_ObjectStoreKey.pub'
 
 getKeys(node)
