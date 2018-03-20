@@ -1,110 +1,80 @@
 from boto.s3.key import Key
 import argparse
-from . import realistic
 import traceback
 import random
-from . import common
+import logging
 import sys
-
+import string
+from boto.s3.connection import S3Connection
+import boto
+import datetime
+import csv
 
 """
-This is stub, not at all in a working state.
-
 Populate a bucket with objects following a specified size distribution
 
-Using this code as a starting point: https://github.com/ceph/s3-tests
 Authors:
+  w.frost@lancaster.ac.uk
   p.love@lancaster.ac.uk
 """
-
 
 def getargs():
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--bucket', help='name of target bucket')
-    parser.add_argument('-m', '--mean', help='mean size of file in bytes')
-    parser.add_argument('-s', '--stddev', help='stddev of file in bytes')
-    parser.add_argument('-n', '--num', help='number of files')
+    parser.add_argument('-m', '--mean', type=int,  help='mean size of file in bytes')
+    parser.add_argument('-s', '--stddev', type=int,  help='stddev of file in bytes')
+    parser.add_argument('-n', '--num', help='number of files',type=int)
+    parser.add_argument('-t', '--duration', help='duration of test',type=int)
     parser.add_argument('--seed', dest='seed', help='optional seed for the random number generator')
-   
+    parser.add_argument('-k', '--key', dest='access_key', help='access key')
+    parser.add_argument('-e', '--secret', dest='secret_key', help='access secret')
+    parser.add_argument('-d', '--hostname', dest='hostname', default='localhost', help='hostname of endpoint')
+    parser.add_argument("--profile", dest="profile", default='default', help="profile name")
+    parser.add_argument('-p', '--port', dest='port', type=int, default=443, help='port number')
+    parser.add_argument("-c", "--insecure", dest="is_secure", default=True, action="store_false", help="use http")
+    parser.add_argument("-f", "--filename", dest="filename", help='[csv file name].csv')
     return parser.parse_args()
 
-
-def get_strings(mean, stddev, seed=None):
-    
-    rand = random.Random(seed)
-
-    while True:
-        while True:
-            size = int(rand.normalvariate(mean, stddev))
-            if size >= 0:
-                break
-        yield ''.join(random.choice(string.ascii_lowercase) for i in range(size))
-
-
-def gen_objects(n, mean, stddev, seed=None):
-    """Make objects with random content and return list of files """
-
-
-    string_generator = get_strings(mean, stddev, seed)
-    return [get_strings.next() for _ in range(n)]
-
-
-def put_objects(bucket, files, seed):
-    """Upload a bunch of files to an S3 bucket
-       IN:
-         boto S3 bucket object
-         list of file handles to upload
-         seed for PRNG
-       OUT:
-         list of boto S3 key objects
-    """
+def put_objects(name_generator, bucket, files):
     keys = []
-    name_generator = realistic.names(15, 4, seed=seed)
-
-    for fp in files:
-        print >> sys.stderr, 'sending file with size %dB' % fp.size
-        key = Key(bucket)
-        key.key = name_generator.next()
-        key.set_contents_from_file(fp, rewind=True)
-        key.set_acl('public-read')
-        keys.append(key)
-
+#    print('sending file with size %dB' % len(files),file=sys.stderr)
+    key = Key(bucket)
+    key.key = name_generator
+#    print(key.key, file=sys.stderr)
+    key.set_contents_from_string(files)
+    key.set_acl('public-read')
+    keys.append(key)
     return keys
-
 
 def main():
     args = getargs()
-    #SETUP
-    random.seed(options.seed if options.seed else None)
-    conn = common.s3.main
-
-    if options.outfile:
-        OUTFILE = open(options.outfile, 'w')
-    elif common.config.file_generation.url_file:
-        OUTFILE = open(common.config.file_generation.url_file, 'w')
-    else:
-        OUTFILE = sys.stdout
-
-    if options.bucket:
-        bucket = conn.create_bucket(options.bucket)
-    else:
-        bucket = common.get_new_bucket()
-
-#    bucket.set_acl('public-read')
-    keys = []
-    print >> OUTFILE, 'bucket: %s' % bucket.name
-    print >> sys.stderr, 'setup complete, generating files'
-    seed = random.random()
-    files = get_random_files(args.num, args.mean, args.stddev, seed)
-    keys += upload_objects(bucket, files, seed)
-
-    print >> sys.stderr, 'finished sending files. generating urls'
-    for key in keys:
-        print >> OUTFILE, key.generate_url(0, query_auth=False)
-
-    print >> sys.stderr, 'done'
-
-
+    filenamedata=[datetime.datetime.now().hour, datetime.datetime.now().minute, datetime.datetime.now().day, datetime.datetime.now().month, datetime.datetime.now().year, args.num, args.mean, args.stddev]
+    for i in range(0,len(filenamedata)):
+        filenamedata[i] = str(filenamedata[i])
+        if len(filenamedata[i])==1:
+            filenamedata[i]='0' + filenamedata[i]
+    outputwriter = csv.writer(sys.stdout)
+    outputwriter.writerow(['Time_Stamp','Dest_Host', 'Dest_Bucket', 'File_Size','Transfer_Duration(s)'])
+    random.seed(args.seed if args.seed else None)
+    conn = S3Connection(aws_access_key_id = args.access_key,
+                        aws_secret_access_key = args.secret_key,
+                        host = args.hostname,
+                        port = args.port,
+                        is_secure = args.is_secure, calling_format = boto.s3.connection.OrdinaryCallingFormat(), profile_name = args.profile)
+    bucket = conn.create_bucket(args.bucket)
+    bucket.set_acl('public-read')
+    for i in range(args.num):
+        size = int(random.normalvariate(args.mean, args.stddev))
+        randname = ''.join(random.choice(string.ascii_lowercase) for _ in range(20))
+        randfile = ''.join(random.choice(string.ascii_lowercase) for _ in range(size))
+        starttime = datetime.datetime.now()
+        put_objects(randname, bucket, randfile)
+        elapsed = datetime.datetime.now() - starttime
+        elapsed_time = float(elapsed.seconds)+float(elapsed.microseconds)/1000000.
+        timestamp = datetime.datetime.timestamp(starttime)
+        outputwriter = csv.writer(sys.stdout)
+        outputwriter.writerow([timestamp, args.hostname, args.bucket, size, elapsed_time])
+        sys.stdout.flush()
 
 if __name__ == '__main__':
     main()
