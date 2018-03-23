@@ -54,13 +54,15 @@ def main():
         if len(filenamedata[i])==1:
             filenamedata[i]='0' + filenamedata[i]
     outputwriter = csv.writer(sys.stdout)
-    outputwriter.writerow(['Time_Stamp','Dest_Host', 'Dest_Bucket', 'File_Size','Transfer_Duration(s)'])
+    outputwriter.writerow(['Time_Stamp','Dest_Host', 'Dest_Bucket', 'File_Size','Duration'])
     random.seed(args.seed if args.seed else None)
     conn = S3Connection(aws_access_key_id = args.access_key,
                         aws_secret_access_key = args.secret_key,
                         host = args.hostname,
                         port = args.port,
-                        is_secure = args.is_secure, calling_format = boto.s3.connection.OrdinaryCallingFormat(), profile_name = args.profile)
+                        is_secure = args.is_secure,
+                        calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+                        profile_name = args.profile)
     bucket = conn.create_bucket(args.bucket)
     bucket.set_acl('public-read')
     for i in range(args.num):
