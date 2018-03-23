@@ -9,6 +9,7 @@ from boto.s3.connection import S3Connection
 import boto
 import datetime
 import csv
+import time
 
 """
 Populate a bucket with objects following a specified size distribution
@@ -69,13 +70,13 @@ def main():
         size = int(random.normalvariate(args.mean, args.stddev))
         randname = ''.join(random.choice(string.ascii_lowercase) for _ in range(20))
         randfile = ''.join(random.choice(string.ascii_lowercase) for _ in range(size))
-        starttime = datetime.datetime.now()
+        starttime = time.time()
         put_objects(randname, bucket, randfile)
         elapsed = datetime.datetime.now() - starttime
         elapsed_time = float(elapsed.seconds)+float(elapsed.microseconds)/1000000.
-        timestamp = datetime.datetime.timestamp(starttime)
+        ts = time.time() - starttime
         outputwriter = csv.writer(sys.stdout)
-        outputwriter.writerow([timestamp, args.hostname, args.bucket, size, elapsed_time])
+        outputwriter.writerow([ts, args.hostname, args.bucket, size, elapsed_time])
         sys.stdout.flush()
 
 if __name__ == '__main__':
