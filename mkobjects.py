@@ -72,11 +72,10 @@ def main():
         randfile = ''.join(random.choice(string.ascii_lowercase) for _ in range(size))
         starttime = time.time()
         put_objects(randname, bucket, randfile)
-        elapsed = datetime.datetime.now() - starttime
-        elapsed_time = float(elapsed.seconds)+float(elapsed.microseconds)/1000000.
-        ts = time.time() - starttime
+        ts = time.time()
+        elapsed = ts - starttime
         outputwriter = csv.writer(sys.stdout)
-        outputwriter.writerow([ts, args.hostname, args.bucket, size, elapsed_time])
+        outputwriter.writerow([ts, args.hostname, args.bucket, size, elapsed])
         sys.stdout.flush()
 
 if __name__ == '__main__':
