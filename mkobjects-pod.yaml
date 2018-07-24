@@ -1,0 +1,33 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: mkobjects-pod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mkobjects
+  template:
+    metadata:
+      labels:
+        app: mkobjects
+    spec:
+      containers:
+      - name: mkobjects-container
+        image: ptrlv/mkobjects:lancs
+        resources:
+          requests:
+            cpu: "50m"
+          limits:
+            cpu: "100m"
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: lancscreds
+                key: AWS_ACCESS_KEY_ID
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: lancscreds
+                key: AWS_SECRET_ACCESS_KEY

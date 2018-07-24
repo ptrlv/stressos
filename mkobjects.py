@@ -9,6 +9,14 @@ from boto.s3.connection import S3Connection
 import boto
 import datetime
 import csv
+import socket
+import time
+import io
+from google.cloud import pubsub_v1
+
+publisher = pubsub_v1.PublisherClient()
+topic_path = publisher.topic_path('palove-198915', 'podtopic')
+print(topic_path)
 
 """
 Populate a bucket with objects following a specified size distribution
@@ -35,19 +43,11 @@ def getargs():
     parser.add_argument("-f", "--filename", dest="filename", help='[csv file name].csv')
     return parser.parse_args()
 
-def put_objects(name_generator, bucket, files):
-    keys = []
-#    print('sending file with size %dB' % len(files),file=sys.stderr)
-    key = Key(bucket)
-    key.key = name_generator
-#    print(key.key, file=sys.stderr)
-    key.set_contents_from_string(files)
-    key.set_acl('public-read')
-    keys.append(key)
-    return keys
-
 def main():
     args = getargs()
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
     filenamedata=[datetime.datetime.now().hour, datetime.datetime.now().minute, datetime.datetime.now().day, datetime.datetime.now().month, datetime.datetime.now().year, args.num, args.mean, args.stddev]
     for i in range(0,len(filenamedata)):
         filenamedata[i] = str(filenamedata[i])
@@ -66,17 +66,38 @@ def main():
     bucket = conn.create_bucket(args.bucket)
     bucket.set_acl('public-read')
     for i in range(args.num):
+        output = io.StringIO()
+        stringwriter = csv.writer(output)
         size = int(random.normalvariate(args.mean, args.stddev))
         randname = ''.join(random.choice(string.ascii_lowercase) for _ in range(20))
         randfile = ''.join(random.choice(string.ascii_lowercase) for _ in range(size))
         starttime = datetime.datetime.now()
-        put_objects(randname, bucket, randfile)
-        elapsed = datetime.datetime.now() - starttime
-        elapsed_time = float(elapsed.seconds)+float(elapsed.microseconds)/1000000.
-        timestamp = datetime.datetime.timestamp(starttime)
-        outputwriter = csv.writer(sys.stdout)
-        outputwriter.writerow([timestamp, args.hostname, args.bucket, size, elapsed_time])
+        key = Key(bucket)
+        key.key = randname
+        try:
+            key.set_contents_from_string(randfile)
+            #key.set_acl('public-read')
+            elapsed = datetime.datetime.now() - starttime
+            elapsed_time = float(elapsed.seconds)+float(elapsed.microseconds)/1000000.
+            timestamp = datetime.datetime.timestamp(starttime)
+            outputwriter = csv.writer(sys.stdout)
+            msg = [timestamp, args.hostname, args.bucket, size, elapsed_time]
+            outputwriter.writerow(msg)
+            stringwriter.writerow(msg)
+            data = output.getvalue().strip('\r\n').encode('utf-8')
+            sock.sendto(data, ('py-dev.lancs.ac.uk', 5050))
+#            publisher.publish(topic_path, data=data)
+            output.close()
+        except Exception as ex:
+            print(ex)    
         sys.stdout.flush()
+    print('Done')
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        return
 
 if __name__ == '__main__':
     main()
